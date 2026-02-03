@@ -1,0 +1,1 @@
+# diary_on_FastAPI
