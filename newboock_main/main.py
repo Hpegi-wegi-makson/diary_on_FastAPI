@@ -1,21 +1,28 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
-from fastapi import FastAPI, Depends, HTTPException, Query
+from fastapi import FastAPI, Depends, HTTPException, Query, Request
+from fastapi.responses import HTMLResponse
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
-from database import SessionLocal, create_user, get_user_by_email, verify_password, User, Task
-from schemas import Registration, Login, TaskOut, TaskUpdate, TaskIn
-from jwt_manager import create_access_token, create_refresh_token, get_current_user
+from database import create_user, get_user_by_email, verify_password, User, Task, RefreshToken
+from dependencies import get_db
+from schemas import Registration, Login, TaskOut, TaskUpdate, TaskIn, RefreshRequest
+from jwt_manager import (
+    create_access_token,
+    create_refresh_token,
+    get_current_user,
+    hash_refresh_token,
+    store_refresh_token,
+    revoke_refresh_token
+)
 from permissions import init_permissions_by_role, check_permission
+from jose import jwt, JWTError
+from config import SECRET_KEY, ALGORITHM
 
 app = FastAPI()
-
-
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+app.mount("/static", StaticFiles(directory="newboock_main/static"), name="static")
+templates = Jinja2Templates(directory="newboock_main/templates")
 
 
 # ------------------ REGISTRATION ------------------
@@ -43,12 +50,56 @@ def login(user: Login, db: Session = Depends(get_db)):
 
     access_token = create_access_token({"id": db_user.id})
     refresh_token = create_refresh_token({"id": db_user.id})
+    payload = jwt.decode(refresh_token, SECRET_KEY, algorithms=[ALGORITHM])
+    expires_at = datetime.fromtimestamp(payload["exp"], tz=timezone.utc)
+    store_refresh_token(db, db_user.id, refresh_token, expires_at)
 
     return {
         "access_token": access_token,
         "refresh_token": refresh_token,
         "token_type": "bearer"
     }
+
+
+@app.post("/token/refresh")
+def refresh_token(request: RefreshRequest, db: Session = Depends(get_db)):
+    try:
+        payload = jwt.decode(request.refresh_token, SECRET_KEY, algorithms=[ALGORITHM])
+        if payload.get("type") != "refresh":
+            raise HTTPException(status_code=401, detail="Invalid token type")
+        user_id = payload.get("id")
+        if not user_id:
+            raise HTTPException(status_code=401, detail="Invalid token")
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+    token_hash = hash_refresh_token(request.refresh_token)
+    stored = (
+        db.query(RefreshToken)
+        .filter(RefreshToken.token_hash == token_hash)
+        .first()
+    )
+    if not stored or stored.revoked_at is not None:
+        raise HTTPException(status_code=401, detail="Refresh token revoked")
+
+    revoke_refresh_token(db, request.refresh_token)
+    new_access = create_access_token({"id": user_id})
+    new_refresh = create_refresh_token({"id": user_id})
+    new_payload = jwt.decode(new_refresh, SECRET_KEY, algorithms=[ALGORITHM])
+    new_expires_at = datetime.fromtimestamp(new_payload["exp"], tz=timezone.utc)
+    store_refresh_token(db, user_id, new_refresh, new_expires_at)
+
+    return {
+        "access_token": new_access,
+        "refresh_token": new_refresh,
+        "token_type": "bearer"
+    }
+
+
+@app.post("/logout")
+def logout(request: RefreshRequest, db: Session = Depends(get_db)):
+    revoke_refresh_token(db, request.refresh_token)
+    return {"status": "logged_out"}
 
 
 # ------------------ ME ------------------
@@ -61,6 +112,11 @@ def me(current_user: User = Depends(get_current_user)):
     }
 
 
+@app.get("/", response_class=HTMLResponse)
+def home(request: Request):
+    return templates.TemplateResponse("index.html", {"request": request})
+
+
 # ------------------ ADMIN EXAMPLE ------------------
 @app.get("/admin")
 def admin_only(current_user: User = Depends(check_permission("admin.panel"))):
@@ -69,7 +125,11 @@ def admin_only(current_user: User = Depends(check_permission("admin.panel"))):
 
 # ------------------ TASKS ------------------
 @app.post("/tasks", response_model=TaskOut)
-def create_task(task: TaskIn, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+def create_task(
+    task: TaskIn,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(check_permission("task.create"))
+):
     new_task = Task(
         title=task.title,
         description=task.description,

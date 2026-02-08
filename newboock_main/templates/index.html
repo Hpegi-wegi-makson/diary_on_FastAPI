@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Diary API</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <main class="page">
+      <header class="hero">
+        <p class="badge">FastAPI · JWT · RBAC</p>
+        <h1>Diary API</h1>
+        <p class="subtitle">
+          Небольшой, но аккуратный API для задач: регистрация, JWT, роли и CRUD.
+        </p>
+        <div class="cta">
+          <a class="button primary" href="/docs">Открыть Swagger</a>
+          <a class="button ghost" href="/redoc">Открыть ReDoc</a>
+        </div>
+      </header>
+
+      <section class="grid">
+        <article class="card">
+          <h2>Что внутри</h2>
+          <ul>
+            <li>Регистрация и логин по email</li>
+            <li>Access + refresh токены</li>
+            <li>Роли и permissions</li>
+            <li>CRUD задач с фильтрами</li>
+          </ul>
+        </article>
+        <article class="card">
+          <h2>Как начать</h2>
+          <ol>
+            <li>Установите зависимости</li>
+            <li>Запустите <code>uvicorn main:app --reload</code></li>
+            <li>Откройте Swagger</li>
+          </ol>
+        </article>
+        <article class="card">
+          <h2>Структура</h2>
+          <p>
+            Модули разделены по зонам ответственности: база данных, JWT, схемы,
+            permissions и endpoints.
+          </p>
+        </article>
+      </section>
+    </main>
+  </body>
+</html>

@@ -60,7 +60,7 @@ cd your-repo
 ### 2. Установка зависимостей
 
 ```bash
-pip install fastapi uvicorn sqlalchemy passlib[bcrypt] python-jose pydantic email-validator
+pip install -r requirements.txt
 ```
 
 ### 3. Запуск сервера
@@ -75,6 +75,7 @@ uvicorn main:app --reload
 
 * 📍 API: [http://127.0.0.1:8000](http://127.0.0.1:8000)
 * 📘 Swagger UI: [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
+* 🏠 Главная страница: [http://127.0.0.1:8000](http://127.0.0.1:8000)
 
 ---
 
@@ -109,7 +110,32 @@ uvicorn main:app --reload
 ```json
 {
   "access_token": "jwt_token",
+  "refresh_token": "refresh_token",
   "token_type": "bearer"
+}
+```
+
+---
+
+### Обновление токена
+
+**POST** `/token/refresh`
+
+```json
+{
+  "refresh_token": "refresh_token"
+}
+```
+
+---
+
+### Выход
+
+**POST** `/logout`
+
+```json
+{
+  "refresh_token": "refresh_token"
 }
 ```
 

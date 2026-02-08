@@ -13,6 +13,10 @@ class Login(BaseModel):
     password: str
 
 
+class RefreshRequest(BaseModel):
+    refresh_token: str
+
+
 # ---- TASKS ----
 class TaskCreate(BaseModel):
     title: str
