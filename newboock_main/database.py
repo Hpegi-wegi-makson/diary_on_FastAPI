@@ -38,9 +38,19 @@ class Task(Base):
     owner_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     owner = relationship("User", back_populates="tasks")
 
+class RefreshToken(Base):
+    __tablename__ = "refresh_tokens"
+
+    id = Column(Integer, primary_key=True)
+    token_hash = Column(String, unique=True, nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    expires_at = Column(DateTime, nullable=False)
+    revoked_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+    user = relationship("User")
+
 def create_user(db, email: str, password: str, permissions: str):
-    from permissions import init_permissions_by_role
-    permissions = init_permissions_by_role("user")
     user = User(email=email, password=hash_password(password), permissions=permissions)
     db.add(user)
     db.commit()
