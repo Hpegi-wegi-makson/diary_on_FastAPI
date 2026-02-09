@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="grid">
+  <div class="panel">
+    <h1>Добро пожаловать!</h1>
+    <p class="muted">
+      Управляйте Navbook заявками: создавайте, отмечайте выполненные и
+      отслеживайте статус в одном месте.
+    </p>
+    <div class="feature-list">
+      <div>
+        <h3>Безопасный вход</h3>
+        <p class="muted">E-mail и пароль для быстрого доступа.</p>
+      </div>
+      <div>
+        <h3>Гибкие заявки</h3>
+        <p class="muted">Создавайте, удаляйте и контролируйте задачи.</p>
+      </div>
+      <div>
+        <h3>Статистика</h3>
+        <p class="muted">Смотрите количество активных и завершённых.</p>
+      </div>
+    </div>
+  </div>
+  <div class="panel panel--accent">
+    <div class="tabs">
+      <input type="radio" name="auth" id="tab-login" checked />
+      <label for="tab-login">Войти</label>
+      <input type="radio" name="auth" id="tab-register" />
+      <label for="tab-register">Регистрация</label>
+      <div class="tabs__content">
+        <form class="form" action="/login" method="post">
+          <label>
+            E-mail
+            <input type="email" name="email" placeholder="you@email.com" required />
+          </label>
+          <label>
+            Пароль
+            <input type="password" name="password" placeholder="Введите пароль" required />
+          </label>
+          <button class="button" type="submit">Войти</button>
+        </form>
+        <form class="form" action="/register" method="post">
+          <label>
+            E-mail
+            <input type="email" name="email" placeholder="you@email.com" required />
+          </label>
+          <label>
+            Пароль
+            <input type="password" name="password" placeholder="Минимум 8 символов" required />
+          </label>
+          <button class="button button--primary" type="submit">Зарегистрироваться</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

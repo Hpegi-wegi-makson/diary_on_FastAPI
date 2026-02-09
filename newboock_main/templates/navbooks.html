@@ -1,0 +1,200 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="dashboard">
+  <div class="stats">
+    <div class="stat-card">
+      <p class="stat-label">Всего задач</p>
+      <p class="stat-value">{{ total }}</p>
+    </div>
+    <div class="stat-card">
+      <p class="stat-label">Выполнено</p>
+      <p class="stat-value">{{ done_count }}</p>
+    </div>
+    <div class="stat-card">
+      <p class="stat-label">В работе</p>
+      <p class="stat-value">{{ total - done_count }}</p>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Создание задачи</h2>
+    <div class="action-grid">
+      <details class="action-card" open>
+        <summary class="button button--primary">Создать задачу</summary>
+        <form class="form" action="/navbooks/create" method="post" data-task-create>
+          <label>
+            Название
+            <input type="text" name="title" placeholder="Например, подготовить отчёт" required />
+          </label>
+          <label>
+            Описание
+            <input type="text" name="description" placeholder="Что нужно сделать" />
+          </label>
+          <label>
+            Срок
+            <input type="date" name="due_date" />
+          </label>
+          <button class="button" type="submit">Сохранить</button>
+        </form>
+      </details>
+      <details class="action-card">
+        <summary class="button button--ghost">Удалить по ID</summary>
+        <form class="form" action="/navbooks/delete" method="post" data-task-delete-id>
+          <label>
+            ID задачи
+            <input type="number" name="task_id" min="1" placeholder="Например, 12" required />
+          </label>
+          <button class="button button--danger" type="submit">Удалить заявку</button>
+        </form>
+      </details>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Таблица задач</h2>
+    {% if tasks %}
+    <div class="table-wrapper">
+      <table class="task-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Тип</th>
+            <th>Название</th>
+            <th>Описание</th>
+            <th>Срок</th>
+            <th>Действия</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in tasks %}
+          <tr>
+            <td>{{ item.id }}</td>
+            <td>
+              <span class="status status--{{ "done" if item.is_done else "pending" }}">
+                {{ "Выполнена" if item.is_done else "В работе" }}
+              </span>
+            </td>
+            <td>{{ item.title }}</td>
+            <td>{{ item.description or "Без описания" }}</td>
+            <td>{{ item.due_date.strftime("%Y-%m-%d") if item.due_date else "—" }}</td>
+            <td>
+              <details>
+                <summary class="button button--ghost">Редактировать</summary>
+                <form class="form form--stack" action="/navbooks/{{ item.id }}/edit" method="post" data-task-edit="{{ item.id }}">
+                  <label>
+                    Название
+                    <input type="text" name="title" value="{{ item.title }}" />
+                  </label>
+                  <label>
+                    Описание
+                    <input type="text" name="description" value="{{ item.description }}" />
+                  </label>
+                  <label>
+                    Срок
+                    <input type="date" name="due_date" value="{{ item.due_date.strftime("%Y-%m-%d") if item.due_date else "" }}" />
+                  </label>
+                  <label>
+                    <input type="checkbox" name="is_done" {% if item.is_done %}checked{% endif %} />
+                    Выполнена
+                  </label>
+                  <button class="button button--primary" type="submit">Сохранить</button>
+                </form>
+              </details>
+              <form class="inline-form" action="/navbooks/{{ item.id }}/delete" method="post" data-task-delete="{{ item.id }}">
+                <button class="button button--danger" type="submit">Удалить</button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <p class="muted">Пока нет задач. Создайте первую.</p>
+    {% endif %}
+  </div>
+</section>
+<script>
+  const sendRequest = async (url, options) => {
+    const response = await fetch(url, {
+  credentials: "include", // ОБЯЗАТЕЛЬНО
+  headers: { "Content-Type": "application/json" }
+});
+    if (response.ok) {
+      window.location.reload();
+      return;
+    }
+    let message = "Произошла ошибка.";
+    try {
+      const data = await response.json();
+      if (data?.detail) {
+        message = data.detail;
+      }
+    } catch (error) {
+      // ignore json parse errors
+    }
+    alert(message);
+  };
+
+  const normalizeDate = (value) => (value ? `${value}T00:00:00` : undefined);
+
+  const createForm = document.querySelector("[data-task-create]");
+  if (createForm) {
+    createForm.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const data = new FormData(createForm);
+      const payload = {
+        title: data.get("title"),
+        description: data.get("description") || undefined,
+        due_date: normalizeDate(data.get("due_date"))
+      };
+      sendRequest("/tasks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+    });
+  }
+
+  document.querySelectorAll("[data-task-edit]").forEach((form) => {
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const data = new FormData(form);
+      const taskId = form.dataset.taskEdit;
+      const payload = {
+        title: data.get("title"),
+        description: data.get("description") || undefined,
+        due_date: normalizeDate(data.get("due_date")),
+        is_done: data.get("is_done") ? true : false
+      };
+      sendRequest(`/tasks/${taskId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+    });
+  });
+
+  document.querySelectorAll("[data-task-delete]").forEach((form) => {
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const taskId = form.dataset.taskDelete;
+      sendRequest(`/tasks/${taskId}`, { method: "DELETE" });
+    });
+  });
+
+  const deleteByIdForm = document.querySelector("[data-task-delete-id]");
+  if (deleteByIdForm) {
+    deleteByIdForm.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const data = new FormData(deleteByIdForm);
+      const taskId = data.get("task_id");
+      if (!taskId) {
+        alert("Введите ID задачи.");
+        return;
+      }
+      sendRequest(`/tasks/${taskId}`, { method: "DELETE" });
+    });
+  }
+</script>
+{% endblock %}
