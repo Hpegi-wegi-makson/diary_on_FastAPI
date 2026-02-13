@@ -136,6 +136,11 @@ AJAX-интерактив без перезагрузки страницы
 Категории или приоритет задач
 
 Email уведомления о дедлайнах
+<img width="1542" height="810" alt="Снимок экрана 2026-02-13 110205" src="https://github.com/user-attachments/assets/3096a8f5-f529-4f6d-9c06-dd85ee4af745" />
+
+<img width="1298" height="728" alt="image" src="https://github.com/user-attachments/assets/3b81e1ba-0f9d-403a-87ad-f5ace63df29a" />
+
+<img width="480" height="570" alt="image" src="https://github.com/user-attachments/assets/34d82cc9-4ed5-4cf9-a83b-4ca4c71acd00" />
 
 
 
