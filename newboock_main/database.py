@@ -1,22 +1,28 @@
-from datetime import datetime, timezone
+from datetime import datetime
+import os
 from pathlib import Path
 from sqlalchemy import create_engine, Column, Integer, String, Boolean, ForeignKey, DateTime
 from sqlalchemy.orm import sessionmaker, declarative_base, relationship
 from passlib.context import CryptContext
 
 BASE_DIR = Path(__file__).resolve().parent
-DATABASE_URL = f"sqlite:///{BASE_DIR / 'database.db'}"
-engine = create_engine(DATABASE_URL, echo=True)
+DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite:///{BASE_DIR / 'database.db'}")
+SQL_ECHO = os.getenv("SQL_ECHO", "false").lower() == "true"
+
+engine = create_engine(DATABASE_URL, echo=SQL_ECHO)
 SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
 Base = declarative_base()
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
+
 def hash_password(password: str) -> str:
     return pwd_context.hash(password)
 
+
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     return pwd_context.verify(plain_password, hashed_password)
+
 
 class User(Base):
     __tablename__ = "users"
@@ -27,6 +33,7 @@ class User(Base):
     permissions = Column(String, nullable=False)
 
     tasks = relationship("Task", back_populates="owner")
+
 
 class Task(Base):
     __tablename__ = "tasks"
@@ -41,6 +48,7 @@ class Task(Base):
     owner_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     owner = relationship("User", back_populates="tasks")
 
+
 class RefreshToken(Base):
     __tablename__ = "refresh_tokens"
 
@@ -53,12 +61,14 @@ class RefreshToken(Base):
 
     user = relationship("User")
 
+
 def create_user(db, email: str, password: str, permissions: str):
     user = User(email=email, password=hash_password(password), permissions=permissions)
     db.add(user)
     db.commit()
     db.refresh(user)
     return user
+
 
 def get_user_by_email(db, email: str):
     return db.query(User).filter(User.email == email).first()

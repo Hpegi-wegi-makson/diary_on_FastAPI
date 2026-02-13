@@ -10,7 +10,8 @@ from sqlalchemy.pool import StaticPool
 sys.path.append(str(Path(__file__).resolve().parents[1]))
 
 from database import Base
-from main import app, get_db
+from dependencies import get_db
+from main import app
 
 
 @pytest.fixture()
@@ -18,13 +19,13 @@ def client():
     engine = create_engine(
         "sqlite://",
         connect_args={"check_same_thread": False},
-        poolclass=StaticPool
+        poolclass=StaticPool,
     )
-    TestingSessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+    testing_session_local = sessionmaker(bind=engine, autoflush=False, autocommit=False)
     Base.metadata.create_all(bind=engine)
 
     def override_get_db():
-        db = TestingSessionLocal()
+        db = testing_session_local()
         try:
             yield db
         finally:

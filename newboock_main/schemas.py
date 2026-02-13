@@ -2,7 +2,7 @@ from pydantic import BaseModel, EmailStr, ConfigDict
 from datetime import datetime
 from typing import Optional
 
-# ---- USERS ----
+
 class Registration(BaseModel):
     email: EmailStr
     password: str
@@ -15,13 +15,6 @@ class Login(BaseModel):
 
 class RefreshRequest(BaseModel):
     refresh_token: str
-
-
-# ---- TASKS ----
-class TaskCreate(BaseModel):
-    title: str
-    description: Optional[str] = None
-    due_date: Optional[datetime] = None
 
 
 class TaskUpdate(BaseModel):
@@ -38,6 +31,8 @@ class TaskIn(BaseModel):
 
 
 class TaskOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     title: str
     description: Optional[str]
